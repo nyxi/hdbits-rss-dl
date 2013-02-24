@@ -51,8 +51,10 @@ def main():
                 TARGETFILE.close()
             # Write filtered lines to hdbits-rss-filtered
             FRSS.write(FLIST[2] + ' ' + FLIST[4] + '\n')
+    # Close files and remove hdbits-rss   
     RSSFILE.close()
     FRSS.close()
+    os.remove(SCRIPTDIR + 'hdbits-rss')
 
 if __name__ == '__main__':
     main()
