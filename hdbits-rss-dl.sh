@@ -12,6 +12,7 @@ cd $SCRIPTDIR
 if [ -f hdbits-rss-filtered ]; then
 	LASTID="$(head -n1 hdbits-rss-filtered | sed 's/ .*//g')"
 fi
+
 # Get the RSS file
 curl -o hdbits-rss $RSSURL?passkey=$PASSKEY
 
