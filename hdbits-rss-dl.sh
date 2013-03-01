@@ -34,8 +34,7 @@ if [ "$LASTID" != "" ]; then
 		# If a match has a id greater than $LASTID it is
 		# a new torrent and we want to download it
 		if [ "$ID" -gt "$LASTID" ]; then
-			curl -o "$TITLE.torrent" "https://hdbits.org/download.php/$TITLE.torrent?id=$ID&passkey=$PASSKEY&source=details"
-			mv *.torrent $TORRENTDIR
+			curl -o "$TORRENTDIR$TITLE.torrent" "https://hdbits.org/download.php/$TITLE.torrent?id=$ID&passkey=$PASSKEY&source=details"
 		fi
 	done <<< "$(grep -f targets hdbits-rss-filtered)"
 fi
