@@ -1,60 +1,60 @@
 #!/usr/bin/python
+# Add your hdbits passkey to PASSKEY variable
+# Set path to where you want to save the .torrent files
+# in the TORRENTDIR variable, don't forget trailing slash
+# Edit the 'targets' file with the torrents you want to
+# look for
 
-import urllib.request
-import os
+import urllib2
 import re
 
-def main():
-    # Some variables
-    RSSURL = 'https://hdbits.org/rss.php'
-    PASSKEY = 'your-passkey' #Set this
-    TORRENTDIR = '/home/emil/rtorrent/torrents/' #Change this
-    SCRIPTDIR = '/home/emil/hdbits-rss/' #Change this to the directory where the script is
-    TARGETS = SCRIPTDIR + 'targets' #Path to your file with search patterns
+# Some variables
+PASSKEY = 'passkey-goes-here' #Set this
+TORRENTDIR = '/home/emil/rtorrent/torrents/' #Change this
 
-    # Checks the highest ID from last time we
-    # ran the script so we only download NEW
-    # torrents
-    LASTID = '0'
-    if os.path.isfile(SCRIPTDIR + 'hdbits-rss-filtered'):
-        RSSFILE = open(SCRIPTDIR + 'hdbits-rss-filtered', 'r')
-        LASTID = ''.join(re.split(' .*\n',RSSFILE.readline()))
-        RSSFILE.close()
-    
-    # This messy section downloads the RSS file, filters it
-    # and check if any of the torrents match any of the
-    # search patterns in TARGETS, if there are any matches
-    # the script downloads the torrent to TORRENTDIR
-    urllib.request.urlretrieve(RSSURL + '?passkey=' + PASSKEY, SCRIPTDIR + 'hdbits-rss')
-    # Open the RSS files
-    RSSFILE = open(SCRIPTDIR + 'hdbits-rss', 'r')
-    FRSS = open(SCRIPTDIR + 'hdbits-rss-filtered', 'w')
-    # Loop the RSS file
-    for line in RSSFILE:
-        # Look for lines with 'guid' in them
-        if 'guid' in line:
-            # Remove HTML-tags and split the current line into a list
-            FLIST = re.split('<.*?>',line)
-            torrent = FLIST[4].replace(' ', '_') + '.torrent'
-            # If we have a LASTID, begin looping
-            # the TARGETS file looking for matches to download
-            if (LASTID != '0'):
-                TARGETFILE = open(TARGETS, 'r')
-                for linex in TARGETFILE:
-                    # Try all patterns from TARGETFILE against the current
-                    # line from the RSS file
-                    results = re.findall(linex.replace('\n', ''), FLIST[4])
-                    # Check if we have a match and if it's a new torrent
-                    if (results and int(FLIST[2]) > int(LASTID)):
-                        # Download the torrent
-                        urllib.request.urlretrieve('https://hdbits.org/download.php/' + torrent + '?id=' + FLIST[2] + '&passkey=' + PASSKEY + '&source=details', TORRENTDIR + torrent)
-                TARGETFILE.close()
-            # Write filtered lines to hdbits-rss-filtered
-            FRSS.write(FLIST[2] + ' ' + FLIST[4] + '\n')
-    # Close files and remove hdbits-rss   
-    RSSFILE.close()
-    FRSS.close()
-    os.remove(SCRIPTDIR + 'hdbits-rss')
+#Read the search string file into a list
+try:
+    with open('targets', 'r') as f:
+        TARGETS = []
+        for line in f:
+            TARGETS.append(line)
+except:
+    print "Error when trying to read 'targets' file, aborting"
+    exit()
 
-if __name__ == '__main__':
-    main()
+# Checks the highest ID from last time we
+# ran the script so we only download NEW
+# torrents
+try:
+    f = open('lastguid', 'r')
+    LASTID = int(f.read().rstrip())
+except:
+    LASTID = 0
+
+# Download the RSS file
+r = urllib2.urlopen('http://hdbits.org/rss.php?passkey=%s' % (PASSKEY))
+# Loop the RSS file
+NEWGUID = None
+for rssline in r:
+    if 'guid' in rssline:
+        # Remove HTML-tags and split the current line into a list
+        FLIST = re.split('<.*?>',rssline)
+        if FLIST[2] == '':
+            continue
+        if NEWGUID is None:
+            NEWGUID = int(FLIST[2])
+        # FLIST[2] is the GUID and FLIST[4] contains the torrent title
+        for target in TARGETS:
+            results = re.findall(target.rstrip().lower(), FLIST[4].lower())
+            # Check if we have a match and if it's a new torrent
+            if (results and int(FLIST[2]) > int(LASTID)):
+                urltodl = 'https://hdbits.org/download.php/%s.torrent?id=%s&passkey=%s' % (FLIST[4].replace(' ', '%20'), FLIST[2], PASSKEY)
+                # Download the .torrent file
+                r = urllib2.urlopen(urltodl)
+                with open('%s.torrent' % (FLIST[4].replace(' ', '_')), 'wb') as torrent:
+                    torrent.write(r.read())
+
+# Update the 'lastguid' file
+if NEWGUID is not None:
+    with open('lastguid', 'w') as f:
+        f.write(str(NEWGUID))
