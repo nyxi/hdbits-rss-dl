@@ -39,11 +39,11 @@ for rssline in r:
     if 'guid' in rssline:
         # Remove HTML-tags and split the current line into a list
         FLIST = re.split('<.*?>',rssline)
+        # FLIST[2] is the GUID and FLIST[4] contains the torrent title
         if FLIST[2] == '':
             continue
         if NEWGUID is None:
             NEWGUID = int(FLIST[2])
-        # FLIST[2] is the GUID and FLIST[4] contains the torrent title
         for target in TARGETS:
             results = re.findall(target.rstrip().lower(), FLIST[4].lower())
             # Check if we have a match and if it's a new torrent
@@ -51,7 +51,7 @@ for rssline in r:
                 urltodl = 'https://hdbits.org/download.php/%s.torrent?id=%s&passkey=%s' % (FLIST[4].replace(' ', '%20'), FLIST[2], PASSKEY)
                 # Download the .torrent file
                 r = urllib2.urlopen(urltodl)
-                with open('%s.torrent' % (FLIST[4].replace(' ', '_')), 'wb') as torrent:
+                with open('%s%s.torrent' % (TORRENTDIR, FLIST[4].replace(' ', '_')), 'wb') as torrent:
                     torrent.write(r.read())
 
 # Update the 'lastguid' file
